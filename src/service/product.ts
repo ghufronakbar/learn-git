@@ -1,5 +1,5 @@
 import { CreateProductDTO, EditProductDTO } from "src/validator/product";
-import { BadRequestError, NotFoundError } from "../utils/error";
+import { BadRequestError, InternalServerError, NotFoundError } from "../utils/error";
 import { PrismaService } from "./prisma-service";
 
 export class ProductService {
@@ -10,6 +10,7 @@ export class ProductService {
     }
 
     getProductById = async (productId: number) => {
+        throw new InternalServerError({ message: "Critical Bug In Production" })
         const product = await this.db.product.findUnique({ where: { id: productId } });
         if (!product) throw new NotFoundError()
         return product;
