@@ -12,12 +12,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "morgan": "^1.10.0",
-    "prisma": "^6.19.1",
+    "prisma": "^5.22.0",
     "zod": "^3.25.67"
   },
   "devDependencies": {

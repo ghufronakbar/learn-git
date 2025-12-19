@@ -7,8 +7,14 @@ export class ProductController extends BaseController {
         super();
     }
 
-    getAllProducts = (req: Request, res: Response) => {
-        const products = this.service.getAllProducts();
+    getAllProducts = async (req: Request, res: Response) => {
+        const products = await this.service.getAllProducts();
         return this.sendOk(req, res, products);
+    }
+
+    createProduct = async (req: Request, res: Response) => {
+        const data = req.body;
+        const product = await this.service.createProduct(data);
+        return this.sendOk(req, res, product);
     }
 }

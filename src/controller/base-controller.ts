@@ -13,15 +13,20 @@ export class BaseController {
     };
 
     private baseResponse(req: Request, res: Response, code: number, data: unknown, errors?: unknown) {
-        res.status(code).json({
-            metaData: {
-                code: code,
-                timestamp: new Date().toISOString(),
-                status: this.status[code],
-            },
-            data,
-            errors
-        });
+        try {
+            res.status(code).json({
+                metaData: {
+                    code: code,
+                    timestamp: new Date().toISOString(),
+                    status: this.status[code],
+                },
+                data,
+                errors
+            });
+        } catch (error) {
+            console.log("hit base response error", error);
+            this.baseResponse(req, res, 500, error);
+        }
     }
 
     protected sendOk(req: Request, res: Response, data: unknown) {

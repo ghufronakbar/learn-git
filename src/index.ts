@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import fs from "fs";
 import { Config } from "./config";
 import api from "./routes/index";
+import { errorHandler } from "./middleware/error-handler";
 const app = express();
 const server = http.createServer(app);
 
@@ -49,6 +50,7 @@ app.get("/__version", (_req, res) => {
 const cfg = new Config();
 
 app.use("/api", api);
+app.use(errorHandler);
 
 // ------- Start server / Bootstrap -------
 server.listen(cfg.common.PORT, async () => {
