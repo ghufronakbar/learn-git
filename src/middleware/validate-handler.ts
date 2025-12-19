@@ -21,8 +21,8 @@ export const validateHandler =
                 next();
             } catch (err: any) {
                 if (err instanceof ZodError) {
-                    throw new ValidationError(err.errors)
+                    return next(new ValidationError(err.errors));
                 }
-                throw new InternalServerError(err)
+                return next(new InternalServerError(err));
             }
         };
