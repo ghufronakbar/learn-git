@@ -10,7 +10,7 @@ export class ProductService {
     }
 
     getProductById = async (productId: number) => {
-        throw new InternalServerError({ message: "Critical Bug In Production" })
+        // throw new InternalServerError({ message: "Critical Bug In Production" }) // there's no bug anymore lol
         const product = await this.db.product.findUnique({ where: { id: productId } });
         if (!product) throw new NotFoundError()
         return product;
