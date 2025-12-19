@@ -10,6 +10,6 @@ export abstract class BaseRouter {
     }
 
     public mount(app: Express) {
-        app.use(`${this.path}`, this.router);
+        app.use(this.path, this.router);
     }
 }

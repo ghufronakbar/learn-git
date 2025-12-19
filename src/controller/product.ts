@@ -7,7 +7,7 @@ export class ProductController extends BaseController {
         super();
     }
 
-    getAllProducts(req: Request, res: Response) {
+    getAllProducts = (req: Request, res: Response) => {
         const products = this.service.getAllProducts();
         return this.sendOk(req, res, products);
     }

@@ -8,6 +8,6 @@ export class ProductRouter extends BaseRouter {
     }
 
     private registerRoutes() {
-        this.router.get("/", this.controller.getAllProducts.bind(this.controller));
+        this.router.get("/", this.controller.getAllProducts);
     }
 }
