@@ -1,17 +1,15 @@
 import express from "express";
+import { ProductController } from "../controller/product";
+import { ProductRouter } from "./product";
+import { ProductService } from "../service/product";
 
-export class IndexRouter {
-    public router: express.Router;
+const api = express.Router();
 
-    constructor() {
-        this.router = express.Router();
-    }
+const productService = new ProductService();
+const productController = new ProductController(productService);
+const productRouter = new ProductRouter(productController);
 
-    public getRouter(): express.Router {
-        return this.router;
-    }
+api.use(productRouter.path, productRouter.router);
 
-    public init(): void {
-        this.router.get("/", (_req, res) => res.send("Hello World!"));
-    }
-}
+export default api;
+

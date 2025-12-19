@@ -6,8 +6,8 @@ import path from "path";
 import http from "http";
 import cookieParser from "cookie-parser";
 import fs from "fs";
-import { IndexRouter } from "./routes/index";
 import { Config } from "./config";
+import api from "./routes/index";
 const app = express();
 const server = http.createServer(app);
 
@@ -31,11 +31,6 @@ app.use(cookieParser());
 
 app.set("trust proxy", true);
 
-// ------- View & Static -------
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")));
-
 // ------- Routes -------
 app.get("/", (req, res) =>
     res.send("Hello World CI/CD Works!, Newest Change, おめでとうございます")
@@ -52,10 +47,8 @@ app.get("/__version", (_req, res) => {
 });
 
 const cfg = new Config();
-const indexRouter = new IndexRouter();
-indexRouter.init();
 
-app.use("/api", indexRouter.getRouter());
+app.use("/api", api);
 
 // ------- Start server / Bootstrap -------
 server.listen(cfg.common.PORT, async () => {
