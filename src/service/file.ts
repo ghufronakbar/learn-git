@@ -10,7 +10,7 @@ export class FileService {
 
     uploadFile = async (file: Express.Multer.File): Promise<UploadFileRes> => {
         const hash = await this.createHash(file);
-        const check = await this.db.appStorage.findUnique({ where: { hash } });
+        const check = await this.getByHash(hash)
         if (check) {
             return { ...check, isDuplicate: true };
         }
@@ -23,6 +23,15 @@ export class FileService {
     private createHash = async (file: Express.Multer.File) => {
         const hash = crypto.createHash("sha256").update(file.buffer).digest("hex");
         return hash;
+    }
+
+
+    getByHash = async (hash: string) => {
+        return await this.db.appStorage.findUnique({ where: { hash } });
+    }
+
+    getMultipleByHash = async (hashes: string[]) => {
+        return await this.db.appStorage.findMany({ where: { hash: { in: hashes } } });
     }
 }
 
