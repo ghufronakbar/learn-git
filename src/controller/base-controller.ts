@@ -59,4 +59,10 @@ export class BaseController {
         res.set("Content-Disposition", `attachment; filename=${filename}`);
         res.send(data);
     }
+
+    protected sendHtmlFile(req: Request, res: Response, data: string, filename: string) {
+        res.set("Content-Type", "text/html");
+        res.set("Content-Disposition", `attachment; filename=${filename}`);
+        res.send(data);
+    }
 }

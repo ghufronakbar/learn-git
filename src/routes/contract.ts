@@ -1,7 +1,7 @@
 import { validateHandler } from "../middleware/validate-handler";
 import { ContractController } from "../controller/contract";
 import { BaseRouter } from "./base-router";
-import { CreateContractSchema, ParamsContractSchema, ParamsVersionSchema, SignContractSchema } from "../validator/contract";
+import { CreateContractSchema, CreateContractTemplateSchema, ParamsContractSchema, ParamsVersionSchema, SignContractSchema } from "../validator/contract";
 import { asyncHandler } from "../middleware/error-handler";
 
 export class ContractRouter extends BaseRouter {
@@ -16,5 +16,8 @@ export class ContractRouter extends BaseRouter {
         this.router.post("/", validateHandler({ body: CreateContractSchema }), asyncHandler(async (req, res) => await this.controller.createContract(req, res)));
         this.router.post("/:contractId/sign", validateHandler({ body: SignContractSchema }), asyncHandler(async (req, res) => await this.controller.signContract(req, res)));
         this.router.get("/:contractId/:versionId", validateHandler({ params: ParamsVersionSchema }), asyncHandler(async (req, res) => await this.controller.showContractFile(req, res)));
+        this.router.post("/preview-html-str", validateHandler({ body: CreateContractTemplateSchema }), asyncHandler(async (req, res) => await this.controller.previewHtmlString(req, res)));
+        this.router.post("/preview-html-file", validateHandler({ body: CreateContractTemplateSchema }), asyncHandler(async (req, res) => await this.controller.previewHtmlFile(req, res)));
+        this.router.post("/preview-pdf-file", validateHandler({ body: CreateContractTemplateSchema }), asyncHandler(async (req, res) => await this.controller.previewPdfFile(req, res)));
     }
 }
