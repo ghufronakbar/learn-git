@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only --exit-child ./src/index.ts",
+    "test:sign:ninja": "ts-node-dev --respawn --transpile-only --exit-child ./test/test-ninja.ts",
+    "test:sign:pdf-lib": "ts-node-dev --respawn --transpile-only --exit-child ./test/test-pdf-lib.ts",
     "build": "tsc --project tsconfig.json"
   },
   "keywords": [],
@@ -13,12 +15,18 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "asn1js": "^3.0.7",
+    "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "pdf-lib": "^1.17.1",
+    "pkijs": "^3.3.3",
     "prisma": "^5.22.0",
+    "pvutils": "^1.1.5",
     "zod": "^3.25.67"
   },
   "devDependencies": {
@@ -28,6 +36,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.19",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.17.57",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
