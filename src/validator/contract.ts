@@ -22,3 +22,12 @@ export const ParamsContractSchema = z.object({
 });
 
 export type ParamsContractDTO = z.infer<typeof ParamsContractSchema>;
+
+// PARAMS VERSION
+export const ParamsVersionSchema = z.object({
+    contractId: z.coerce.number().int(),
+    versionId: z.coerce.number().int(),
+});
+
+export type ParamsVersionDTO = z.infer<typeof ParamsVersionSchema>;
+

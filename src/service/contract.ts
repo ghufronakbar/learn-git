@@ -247,6 +247,15 @@ export class ContractService {
         return returnData;
     }
 
+    getBufferFile = async (contractId: number, versionId: number): Promise<Buffer> => {
+        const vers = await this.db.contractVersion.findFirst({ where: { contractId, id: versionId } })
+        if (!vers) throw new NotFoundError("VERSION_NOT_FOUND")
+        const file = await this.fileService.getByHash(vers.hashFile)
+        if (!file) throw new NotFoundError("FILE_NOT_FOUND")
+        const buffer = await this.downloadPdf(file.pathFile);
+        return buffer;
+    }
+
     // ============================================================
     // validateSignatureFields(url)
     // ============================================================

@@ -53,4 +53,10 @@ export class BaseController {
     protected sendInternalError(req: Request, res: Response, data: unknown) {
         this.baseResponse(req, res, 500, data);
     }
+
+    protected sendPdfFile(req: Request, res: Response, data: Buffer, filename: string) {
+        res.set("Content-Type", "application/pdf");
+        res.set("Content-Disposition", `attachment; filename=${filename}`);
+        res.send(data);
+    }
 }
