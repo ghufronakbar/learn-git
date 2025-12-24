@@ -35,3 +35,65 @@ model History {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
+
+// Contract
+// Keperluan:
+// upload contract pertama kali -> save version dan signer (kriptografi)
+// update contract -> validasi apakah signer sebelumnya masih ada di versi sebelumnya -> save version dan signer (kriptografi)
+
+model Contract {
+  id Int @id @default(autoincrement())
+
+  contractVersions ContractVersion[]
+}
+
+model ContractVersion {
+  id Int @id @default(autoincrement())
+
+  contractId Int
+  contract   Contract @relation(fields: [contractId], references: [id])
+
+  hashFile String // path file contract (anggap sekarang store ke service cloud ex: cloudinary)
+
+  signatureFields SignatureField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model SignatureField {
+  id Int @id @default(autoincrement())
+
+  contractVersionId Int
+  contractVersion   ContractVersion @relation(fields: [contractVersionId], references: [id])
+
+  signatureField String // identifier signature field
+  pdfName        String // name signature field
+  pdfM           String // signing time
+
+  subject     String? // subject of signature
+  issuer      String? // issuer of signature
+  cryptoOk    Boolean // crypto ok
+  byteRangeOk Boolean // byte range ok
+  integrityOk Boolean // integrity ok
+  trustedCa   Boolean // trusted ca
+
+  signedAt DateTime // signed at
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AppStorage {
+  id Int @id @default(autoincrement())
+
+  hash         String @unique
+  pathFile     String // path file contract (anggap sekarang store ke service cloud ex: cloudinary)
+  publicId     String // public id from cloudinary
+  resourceType String // resource type from cloudinary
+  size         Int // size from cloudinary
+  format       String // format from cloudinary
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

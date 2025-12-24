@@ -352,6 +352,7 @@ function getContentsBytes(sigDict: PDFDict): Uint8Array | null {
 
 async function main() {
     const inputArg = process.argv[2];
+    console.log("Input arg:", inputArg || "(default)");
     const pdfPath = inputArg
         ? path.resolve(process.cwd(), inputArg)
         : path.resolve(process.cwd(), "test/signed_contract.pdf");
