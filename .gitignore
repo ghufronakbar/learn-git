@@ -1,5 +1,10 @@
+# node files
 node_modules
 dist
 .env*
 !.env.example
 /src/generated/prisma
+
+# python files
+.venv
+*.pyc
