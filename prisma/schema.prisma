@@ -97,3 +97,62 @@ model AppStorage {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
+
+// ORDER
+model OrderIssued {
+  id Int @id @default(autoincrement())
+
+  issue String
+
+  warehouseName String
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  orderContract OrderContract?
+}
+
+model OrderContract {
+  id Int @id @default(autoincrement())
+
+  orderIssuedId Int         @unique
+  orderIssued   OrderIssued @relation(fields: [orderIssuedId], references: [id])
+
+  orderContractVersions OrderContractVersion[]
+}
+
+model OrderContractVersion {
+  id Int @id @default(autoincrement())
+
+  orderContractId Int
+  orderContract   OrderContract @relation(fields: [orderContractId], references: [id])
+
+  hashFile String // path file contract (anggap sekarang store ke service cloud ex: cloudinary)
+
+  orderContractVersionSignatureFields OrderContractVersionSignatureField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model OrderContractVersionSignatureField {
+  id Int @id @default(autoincrement())
+
+  orderContractVersionId Int
+  orderContractVersion   OrderContractVersion @relation(fields: [orderContractVersionId], references: [id])
+
+  signatureField String // identifier signature field
+  pdfName        String // name signature field
+  pdfM           String // signing time
+
+  subject     String? // subject of signature
+  issuer      String? // issuer of signature
+  cryptoOk    Boolean // crypto ok
+  byteRangeOk Boolean // byte range ok
+  integrityOk Boolean // integrity ok
+  trustedCa   Boolean // trusted ca
+
+  signedAt DateTime // signed at
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

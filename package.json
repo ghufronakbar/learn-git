@@ -16,6 +16,10 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@signpdf/placeholder-pdf-lib": "^3.2.6",
+    "@signpdf/signer-p12": "^3.2.4",
+    "@signpdf/signpdf": "^3.2.5",
+    "@signpdf/utils": "^3.2.4",
     "asn1js": "^3.0.7",
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
@@ -24,10 +28,12 @@
     "express": "^4.21.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
+    "opentype.js": "^1.3.4",
     "pdf-lib": "^1.17.1",
     "pkijs": "^3.3.3",
     "prisma": "^5.22.0",
     "pvutils": "^1.1.5",
+    "sharp": "^0.34.5",
     "zod": "^3.25.67"
   },
   "devDependencies": {
@@ -39,6 +45,7 @@
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^20.17.57",
+    "@types/opentype.js": "^1.3.8",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
