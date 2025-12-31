@@ -15,5 +15,6 @@ export class OrderRouter extends BaseRouter {
         this.router.get("/:orderIssuedId", validateHandler({ params: ParamsOrderIssuedSchema }), asyncHandler(async (req, res) => await this.controller.getOrderIssuedById(req, res)));
         this.router.post("/", validateHandler({ body: CreateOrderIssuedSchema }), asyncHandler(async (req, res) => await this.controller.createOrderIssued(req, res)));
         this.router.post("/:orderIssuedId/sign", validateHandler({ params: ParamsOrderIssuedSchema, }), asyncHandler(async (req, res) => await this.controller.signOrderContract(req, res)));
+        this.router.get("/:orderIssuedId/check-sign", validateHandler({ params: ParamsOrderIssuedSchema, }), asyncHandler(async (req, res) => await this.controller.checkSign(req, res)));
     }
 }

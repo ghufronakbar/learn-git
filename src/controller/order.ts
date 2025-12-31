@@ -30,4 +30,10 @@ export class OrderController extends BaseController {
         const orderIssued = await this.service.signOrderContract(params.orderIssuedId);
         return this.sendOk(req, res, orderIssued);
     }
+
+    checkSign = async (req: Request, res: Response) => {
+        const params = req.params as unknown as ParamsOrderIssuedDTO;
+        const orderIssued = await this.service.checkSign(params.orderIssuedId);
+        return this.sendOk(req, res, orderIssued);
+    }
 }

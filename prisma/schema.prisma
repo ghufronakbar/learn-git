@@ -144,12 +144,14 @@ model OrderContractVersionSignatureField {
   pdfName        String // name signature field
   pdfM           String // signing time
 
-  subject     String? // subject of signature
-  issuer      String? // issuer of signature
-  cryptoOk    Boolean // crypto ok
-  byteRangeOk Boolean // byte range ok
-  integrityOk Boolean // integrity ok
-  trustedCa   Boolean // trusted ca
+  subject        String? // subject of signature
+  issuer         String? // issuer of signature
+  cryptoOk       Boolean // crypto ok
+  byteRangeOk    Boolean // byte range ok
+  integrityOk    Boolean // integrity ok
+  trustedCa      Boolean // trusted ca
+  trustedByOwnCA Boolean // trusted by own ca
+  versionOwnCA   Int // version own ca
 
   signedAt DateTime // signed at
 

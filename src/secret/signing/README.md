@@ -9,6 +9,8 @@ openssl req -new -x509 -key dev.key -out dev.crt -days 730 \
 openssl pkcs12 -export -out dev.p12 -inkey dev.key -in dev.crt \
   -passout pass:devpass
 
+# 4) cek
+openssl pkcs12 -info -in dev.p12 -nokeys
 
 src/secret/signing/
   dev.key   # private key (RAHASIA)

@@ -24,6 +24,8 @@ import { pdflibAddPlaceholder } from "@signpdf/placeholder-pdf-lib";
 import { P12Signer } from "@signpdf/signer-p12";
 import { SUBFILTER_ADOBE_PKCS7_DETACHED as SUBFILTER_ADBE_PKCS7_DETACHED } from "@signpdf/utils";
 import { Config } from "../config";
+import SignPdf from "@signpdf/signpdf";
+import { generateNewCert, SECRET } from "../config/secret";
 
 interface OrderIssuedRes extends OrderIssued {
     orderContract: OrderContractRes | null;
@@ -37,6 +39,8 @@ interface OrderContractVersionRes extends OrderContractVersion {
     file: AppStorage | null;
     orderContractVersionSignatureFields: OrderContractVersionSignatureField[];
 }
+
+const VERSION: number = 2
 
 
 export class OrderService {
@@ -184,6 +188,8 @@ export class OrderService {
                                             pdfName: item.pdfName,
                                             subject: item.subject,
                                             issuer: item.issuer,
+                                            trustedByOwnCA: false,
+                                            versionOwnCA: VERSION,
                                         }))
                                     }
                                 } : undefined
@@ -214,7 +220,6 @@ export class OrderService {
         if (!check.orderContract) throw new NotFoundError("ORDER_CONTRACT_NOT_FOUND");
         if (!check.orderContract.orderContractVersions.length) throw new NotFoundError("ORDER_CONTRACT_VERSION_NOT_FOUND");
 
-        // kamu bilang hanya boleh 1x tanda tangan
         if (check.orderContract.orderContractVersions.length > 1) {
             throw new BadRequestError("CONTRACT_ALREADY_SIGNED");
         }
@@ -234,7 +239,7 @@ export class OrderService {
             signerName,
             rect.w,
             rect.h,
-            FILE.SIGNING.SCRIPT_FONT!
+            FILE.SCRIPT_FONT!
         );
 
         // 3) stamp signature image (visible)
@@ -254,6 +259,10 @@ export class OrderService {
         const anyOk = signFields.some((s) => s.cryptoOk && s.integrityOk && s.byteRangeOk);
         if (!anyOk) throw new BadRequestError("SIGN_FAILED_CRYPTO_INVALID");
 
+        const ownKeySignFields = await this.validateUsingOwnKey(signedFile.pathFile);
+        const anyOwnKeyOk = ownKeySignFields.some((s) => s.trustedByOwnCA);
+        if (!anyOwnKeyOk) throw new BadRequestError("SIGN_FAILED_OWN_KEY_INVALID");
+
         // 7) simpan versi baru + signature fields
         await this.db.orderContract.update({
             where: { id: check.orderContract.id },
@@ -263,18 +272,23 @@ export class OrderService {
                         hashFile: signedFile.hash,
                         orderContractVersionSignatureFields: {
                             createMany: {
-                                data: signFields.map((item) => ({
-                                    signatureField: item.signatureField,
-                                    pdfName: item.pdfName,
-                                    pdfM: item.pdfM,
-                                    subject: item.subject,
-                                    issuer: item.issuer,
-                                    cryptoOk: item.cryptoOk || false,
-                                    byteRangeOk: item.byteRangeOk || false,
-                                    integrityOk: item.integrityOk || false,
-                                    trustedCa: item.trustedCa || false,
-                                    signedAt: item.signedAt || new Date(),
-                                })),
+                                data: signFields.map((item) => {
+                                    const trustedByOwnCA = ownKeySignFields.some((s) => s.signatureField === item.signatureField);
+                                    return {
+                                        signatureField: item.signatureField,
+                                        pdfName: item.pdfName,
+                                        pdfM: item.pdfM,
+                                        subject: item.subject,
+                                        issuer: item.issuer,
+                                        cryptoOk: item.cryptoOk || false,
+                                        byteRangeOk: item.byteRangeOk || false,
+                                        integrityOk: item.integrityOk || false,
+                                        trustedCa: item.trustedCa || false,
+                                        signedAt: item.signedAt || new Date(),
+                                        trustedByOwnCA: trustedByOwnCA,
+                                        versionOwnCA: VERSION,
+                                    }
+                                }),
                             },
                         },
                     },
@@ -284,6 +298,131 @@ export class OrderService {
 
         return { ok: true, signedHash: signedFile.hash };
     };
+
+    checkSign = async (orderIssuedId: number) => {
+        const orderIssued = await this.getOrderIssuedById(orderIssuedId)
+        const signed = orderIssued.orderContract?.orderContractVersions.filter((v) => v.orderContractVersionSignatureFields.length > 0)
+        if (!signed || signed.length === 0) throw new NotFoundError("THERE_IS_NO_SIGNED_VERSION");
+        const file = await this.fileService.getByHash(signed[0].hashFile);
+        if (!file) throw new NotFoundError("FILE_NOT_FOUND");
+        const result = await this.validateUsingOwnKey(file.pathFile);
+        console.log(result);
+        return result;
+    };
+
+    private validateUsingOwnKey = async (
+        url: string
+    ): Promise<Array<{ signatureField: string; trustedByOwnCA: boolean }>> => {
+        const pdfBytes = await this.downloadPdf(url);
+        const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+
+        const sigFields = this.collectSignatureFields(pdfDoc);
+
+        const anchors = await this.getOwnTrustAnchors(); // X509Certificate[]
+        const now = new Date();
+
+        const out: Array<{ signatureField: string; trustedByOwnCA: boolean }> = [];
+
+        for (const sf of sigFields) {
+            const sigDict = sf.sigDict;
+
+            const byteRangeArr = this.tryLookup<PDFArray>(sigDict, "ByteRange", PDFArray);
+            const contentsBytes = this.getContentsBytes(sigDict);
+
+            // default
+            let trustedByOwnCA = false;
+
+            // ByteRange -> number[]
+            let br: number[] = [];
+            if (byteRangeArr) {
+                br = [...Array(byteRangeArr.size())].map((_, idx) => {
+                    const n = byteRangeArr.get(idx);
+                    return n instanceof PDFNumber ? n.asNumber() : Number(String(n));
+                });
+            }
+
+            const byteRangeOk = this.byteRangeSanityCheck(br, pdfBytes.length);
+
+            if (byteRangeOk && contentsBytes) {
+                const [a, b, c, d] = br;
+
+                const signedBytes = Buffer.concat([
+                    pdfBytes.subarray(a, a + b),
+                    pdfBytes.subarray(c, c + d),
+                ]);
+
+                const derCandidate = this.sliceDerFromPadded(contentsBytes);
+
+                try {
+                    // CMS/PKCS7 verify (detached)
+                    const cmsRes = await this.verifyCmsDetachedPkijs(derCandidate, signedBytes);
+
+                    if (cmsRes.ok && cmsRes.signerCertDer) {
+                        const signerCert = new X509Certificate(Buffer.from(cmsRes.signerCertDer));
+                        trustedByOwnCA = this.isSignerTrustedByOwnAnchors(signerCert, anchors, now);
+                    }
+                } catch {
+                    // fallback legacy: /SubFilter = /adbe.x509.rsa_sha1
+                    // signer cert biasanya ada di /Cert
+                    const certDer = this.getCertFromSigDict(sigDict);
+                    if (certDer) {
+                        const signerCert = new X509Certificate(Buffer.from(certDer));
+                        trustedByOwnCA = this.isSignerTrustedByOwnAnchors(signerCert, anchors, now);
+                    }
+                }
+            }
+
+            out.push({
+                signatureField: sf.fieldName ?? "",
+                trustedByOwnCA,
+            });
+        }
+
+        return out;
+    };
+
+    private getOwnTrustAnchors = async (): Promise<X509Certificate[]> => {
+        const bufs: Buffer[] = [];
+
+        await generateNewCert(VERSION, { days: 1, force: false, });
+        const { SIGNING } = SECRET(VERSION);
+
+        // 1) Prefer: root CA internal (kalau ada)
+        if (SIGNING.PUBLIC_KEY) bufs.push(SIGNING.PUBLIC_KEY);
+
+        // 2) Fallback demo: pakai dev.crt sebagai trust anchor (self-signed)
+        if (!bufs.length && SIGNING.PUBLIC_KEY) bufs.push(SIGNING.PUBLIC_KEY);
+
+        return bufs.map((b) => new X509Certificate(b));
+    };
+
+    private isSignerTrustedByOwnAnchors = (
+        signer: X509Certificate,
+        anchors: X509Certificate[],
+        now = new Date()
+    ): boolean => {
+        // OPTIONAL policy: enforce masa berlaku signer cert
+        // (kalau untuk demo mau di-skip, tinggal return true tanpa cek date)
+        if (!this.isWithinValidity(signer, now)) return false;
+
+        for (const a of anchors) {
+            // Case A (demo self-signed): cert signer == anchor
+            if (signer.fingerprint256 === a.fingerprint256) return true;
+
+            // Case B (proper CA): signer cert issued by CA internal
+            // NOTE: checkIssued = "this cert issued by other cert"
+            if (signer.checkIssued(a)) return true;
+        }
+
+        return false;
+    };
+
+    private isWithinValidity = (cert: X509Certificate, now = new Date()): boolean => {
+        const from = new Date(cert.validFrom);
+        const to = new Date(cert.validTo);
+        return now >= from && now <= to;
+    };
+
 
     // ============================================================
     // validateSignatureFields(url)
@@ -1059,6 +1198,8 @@ async function signPdfWithP12(pdfDoc: PDFDocument, rect: SignatureRect, signerNa
     const cfg = new Config()
     const passphrase = cfg.signPdf.SIGN_P12_PASSPHRASE
 
+    const now = new Date()
+    now.setDate(now.getDate() + 2)
     // 1) add placeholder (/Sig, /ByteRange, /Contents padding)
     pdflibAddPlaceholder({
         pdfDoc,
@@ -1066,25 +1207,30 @@ async function signPdfWithP12(pdfDoc: PDFDocument, rect: SignatureRect, signerNa
         contactInfo: "Nextar74 demo",
         name: signerName,
         location: "Warehouse",
-        signingTime: new Date(),
+        signingTime: now,
         signatureLength: 8192,
         subFilter: SUBFILTER_ADBE_PKCS7_DETACHED, // "adbe.pkcs7.detached"
         // widgetRect = [llx, lly, urx, ury]
         widgetRect: [rect.x, rect.y, rect.x + rect.w, rect.y + rect.h],
+
         // beberapa versi support pageNumber; kalau tidak ada juga biasanya tetap jalan (default last/first)
-        pageNumber: rect.pageIndex,
-    } as any);
+        // pageNumber: rect.pageIndex,
+    });
 
     // penting untuk kompatibilitas placeholder/signing flow
     const pdfWithPlaceholderBytes = await pdfDoc.save({ useObjectStreams: false }); // :contentReference[oaicite:4]{index=4}
     const pdfWithPlaceholder = Buffer.from(pdfWithPlaceholderBytes);
 
     // 2) sign placeholder
-    const { default: SignPdf } = await import("@signpdf/signpdf");
-    const signpdf = SignPdf
+    // const { default: SignPdf } = await import("@signpdf/signpdf");
+    // const signpdf = SignPdf
 
-    const signer = new P12Signer(FILE.SIGNING.P12_KEY!, { passphrase });
-    const signedPdf: Buffer = await signpdf.sign(pdfWithPlaceholder, signer);
+    await generateNewCert(VERSION, { days: 1, force: false, });
+
+    const { SIGNING } = SECRET(VERSION);
+
+    const signer = new P12Signer(SIGNING.P12_KEY!, { passphrase });
+    const signedPdf: Buffer = await SignPdf.sign(pdfWithPlaceholder, signer);
 
     return signedPdf;
 }
