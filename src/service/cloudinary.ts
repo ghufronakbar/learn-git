@@ -47,6 +47,33 @@ export class CloudinaryService {
         });
     };
 
+    uploadByBuffer = async (
+        buffer: Buffer,
+        opts: UploadFileOptions = {}
+    ): Promise<UploadApiResponse> => {
+        if (!buffer) throw new BadRequestError("Buffer is required.");
+
+        const { folder = "test", publicId, resourceType = "auto" } = opts;
+
+        return new Promise<UploadApiResponse>((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                {
+                    folder,
+                    public_id: publicId,
+                    resource_type: resourceType,
+                    overwrite: true,
+                },
+                (err, result) => {
+                    if (err) return reject(new InternalServerError(err.message));
+                    if (!result) return reject(new InternalServerError("CLOUDINARY_UPLOAD_FAILED"));
+                    resolve(result);
+                }
+            );
+
+            Readable.from(buffer).pipe(stream);
+        });
+    };
+
     deleteFile = async (publicId: string) => {
         if (!publicId) throw new BadRequestError("publicId is required.");
 

@@ -9,6 +9,7 @@ import fs from "fs";
 import { Config } from "./config";
 import api from "./routes/index";
 import { errorHandler } from "./middleware/error-handler";
+import "./config/file";
 const app = express();
 const server = http.createServer(app);
 
